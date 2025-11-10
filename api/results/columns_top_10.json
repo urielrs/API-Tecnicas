@@ -1,0 +1,12 @@
+[
+    "Init_Win_bytes_forward",
+    "flow_fin",
+    "Init_Win_bytes_backward",
+    "max_flowiat",
+    "mean_flowiat",
+    "duration",
+    "flowBytesPerSecond",
+    "flowPktsPerSecond",
+    "fPktsPerSecond",
+    "min_flowpktl"
+]
