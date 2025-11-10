@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualización de Resultados de Análisis</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f8f8f8; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .result-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h2 { border-left: 5px solid #3498db; padding-left: 10px; color: #333; }
+        pre { background-color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; color: #2c3e50; font-family: Consolas, monospace; }
+        /* Estilos de la tabla de DataFrames */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; font-size: 14px; }
+        th { background-color: #3498db; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Tecnicas de Seleccion de Caracteristicas</h1>
+    <div id="results-container">
+        <p>Cargando datos...</p>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api/results'; // Ahora es la raíz gracias a la última configuración de URLs
+
+        // Función 1: Convierte datos de DataFrame (orient='split') en tabla HTML
+        function arrayToTable(data, title) {
+            if (!data || !data.columns || data.columns.length === 0) return `<p>No hay datos estructurados para ${title}.</p>`;
+            
+            const columns = data.columns;
+            const index = data.index;
+            const matrix = data.data;
+
+            let html = `<h2>${title}</h2><table><thead><tr><th>Index</th>`;
+            columns.forEach(col => { html += `<th>${col}</th>`; });
+            html += `</tr></thead><tbody>`;
+
+            matrix.forEach((row, i) => {
+                html += `<tr><td>${index[i]}</td>`;
+                row.forEach(cell => { 
+                    // Formato de celda: limita decimales si es un número
+                    const formattedCell = (typeof cell === 'number') ? cell.toFixed(6) : cell;
+                    html += `<td>${formattedCell}</td>`; 
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            return html;
+        }
+
+        // Función 2: Convierte datos de Series (ej: value_counts, correlación) en tabla HTML
+        function seriesToTable(data, title, keyHeader, valueHeader) {
+            if (!data || Object.keys(data).length === 0) return `<p>No hay datos de Series para ${title}.</p>`;
+
+            let html = `<h2>${title}</h2><table><thead><tr><th>${keyHeader}</th><th>${valueHeader}</th></tr></thead><tbody>`;
+            
+            // Usamos Object.entries para iterar
+            const dataArray = Object.entries(data);
+
+            dataArray.forEach(([key, value]) => {
+                const formattedValue = (typeof value === 'number') ? value.toFixed(6) : value;
+                html += `<tr><td>${key}</td><td>${formattedValue}</td></tr>`;
+            });
+
+            html += `</tbody></table>`;
+            return html;
+        }
+
+
+        // Función principal para consumir la API y renderizar
+        async function fetchAndRenderResults() {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '<p>Cargando datos...</p>';
+
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Error de red: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                let outputHtml = '';
+
+                // 1. df.head(10)
+                outputHtml += `<div class="result-section">${arrayToTable(data.df_head_10, "1. Visualización df.head()")}</div>`;
+
+                // 2. df.info() (Es texto puro)
+                outputHtml += `<div class="result-section"><h2>2. Visualización df.info()</h2><pre>${data.df_info}</pre></div>`;
+
+                // 3. df['calss'].value_counts()
+                outputHtml += `<div class="result-section">${seriesToTable(data.calss_value_counts, "3. Visualización df['calss']")}</div>`;
+
+                // 4. df.describe()
+                outputHtml += `<div class="result-section">${arrayToTable(data.df_describe, "4. Visualización df.describe()")}</div>`;
+
+                // 5. Correlación con 'calss'
+                outputHtml += `<div class="result-section">${seriesToTable(data.calss_corr_sorted, "5. Correlación")}</div>`;
+                
+
+
+                // 8. feature_importances_top_20
+                outputHtml += `<div class="result-section">${seriesToTable(data.feature_importances_top_20, "6. Importancia de Características")}</div>`;
+                
+                // 9. columns (Top 10 features)
+                outputHtml += `<div class="result-section">
+                                    <h2>7. Columnas Seleccionadas</h2>
+                                    <pre>${JSON.stringify(data.columns_top_10, null, 2)}</pre>
+                                </div>`;
+
+                // 10. X_train_reduced.head(10)
+                outputHtml += `<div class="result-section">${arrayToTable(data.X_train_reduced_head_10, "8. DataFrame Reducido X_train_reduced.head()")}</div>`;
+
+
+                container.innerHTML = outputHtml;
+
+            } catch (error) {
+                console.error("Error al obtener los datos de la API:", error);
+                container.innerHTML = `<p style="color: red;">Error al cargar los datos: <strong>${error.message}</strong>. <br>Asegúrate de que el servidor de Django esté corriendo en <code>http://127.0.0.1:8000/</code>.</p>`;
+            }
+        }
+
+        fetchAndRenderResults();
+    </script>
+</body>
+</html>
