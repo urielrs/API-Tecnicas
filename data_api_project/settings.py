@@ -29,7 +29,7 @@ SECRET_KEY = "django-insecure-0na-fgppf6b&33dnl@xg+0_1jo%(f0gb&^86!4$k$5@ws+04_b
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'tu-nombre-de-render.onrender.com', 
+    'https://api-tecnicas.onrender.com', 
     '127.0.0.1', 
     'localhost'
 ]
